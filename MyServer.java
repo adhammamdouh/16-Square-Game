@@ -1,4 +1,3 @@
-// A Java program for a Server 
 import java.net.*;
 import java.io.*;
 
@@ -9,16 +8,12 @@ public class MyServer
     private ServerSocket server = null;
     private DataInputStream in	 = null;
 
-    // constructor with port
     public MyServer(int port)
     {
-        // starts server and waits for a connection
         try
         {
             server = new ServerSocket(port);
-
-
-            // reads message from client until "Over" is sent
+            
             while (true)
             {
                 try {
