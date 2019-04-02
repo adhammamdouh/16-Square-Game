@@ -1,6 +1,8 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.DataInputStream;
@@ -27,25 +29,27 @@ public class GamePage extends JFrame{
     private JPanel Panel;
     private JLabel Player;
 
-    Color MainColor = Color.white;
-    Color NotChoice = Color.pink;
-    Font font = new Font("",Font.BOLD,50);
-    Color Player1Color = Color.BLUE;
-    Color Player2Color = Color.red;
+    private Color MainColor = Color.white;
+    private Color NotChoice = Color.pink;
+    private Font font = new Font("",Font.BOLD,50);
+    private Color Player1Color = Color.BLUE;
+    private Color Player2Color = Color.red;
 
     private DataInputStream Receive = null;
     private DataOutputStream Send = null;
     private int RECEIVED = 0;
-    private int SENDED = 0;
 
     private int FirstChoice = 0;
-    private int SecondChoice = 0;
+
+    private String Player1Name;
+    private String Player2Name;
 
     public static JButton[][] btn = null;
 
-    public GamePage(DataInputStream R ,DataOutputStream S, boolean Host){
+    public GamePage(DataInputStream R ,DataOutputStream S,String Player1){
         Receive = R;
         Send = S;
+        Player1Name = Player1;
 
         AddButtons();
 
@@ -66,43 +70,60 @@ public class GamePage extends JFrame{
         add(Panel);
 
         try {
-            String temp = Receive.readUTF();
-            System.out.println(temp);
+            Player2Name = Receive.readUTF();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        Player.setText("Player 1 : " + Player1Name);
         setVisible(true);
 
         Player.addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                if(Player.getText().equals("Player 1"))return;
-                Rec();
+                if(Player.getText().equals("Player 1 : " + Player1Name))return;
+                ReceiveSquares();
             }
         });
-
-
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                System.exit(0);
+            }
+        });
     }
 
     public void actionPerformed(ActionEvent e) {
         for(int i = 0 ; i < 4 ; ++i){
             for(int j = 0 ; j < 4 ; ++j){
                 if(btn[i][j] == e.getSource()){
-                    SENDED = (i*4)+j+1;
-
                     try {
+                        int SENDED = (i * 4) + j + 1;
                         Send.writeUTF(SENDED + "");
-                        System.out.println(SENDED + "");
+                        try {
+                            String temp = Receive.readUTF();
+                            if(temp.equals("error")){
+                                JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
+                                stop();
+                                System.exit(0);
+                            }
+                        } catch (Exception k){
+                            JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
+                            stop();
+                            System.exit(0);
+                            break;
+                        }
+
                     }
                     catch (IOException l){
-                        System.out.println(l);
+                        JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
+                        stop();
+                        System.exit(0);
                     }
 
                     if(btn[i][j].getBackground() != MainColor){
-                        System.out.println("Not Equal");
                         btn[i][j].setBackground(MainColor);
                         FirstChoice = 0;
-                        EnableAll();
+                        DEnableAll(true);
                     }
                     else if(FirstChoice == 0){
                         FirstChoice = i*4 + j + 1;
@@ -110,38 +131,46 @@ public class GamePage extends JFrame{
                         SetEnable(i,j);
                     }
                     else{
-                        SecondChoice = i*4 + j + 1;
+                        int SecondChoice = i * 4 + j + 1;
                         btn[i][j].setBackground(Player1Color);
                         DisableButton(FirstChoice);
                         DisableButton(SecondChoice);
-                        EnableAll();
-                        CheckValid();
+                        DEnableAll(true);
+                        if(CheckValidAndEndGame()){
+                            try {
+                                Send.writeUTF("17");
+                            } catch (IOException e1) {
+                                e1.printStackTrace();
+                            }
+                            JOptionPane.showMessageDialog(null,"The Winner is : " + Player1Name);
+                            return;
+                        }
                         try {
                             Send.writeUTF("-1");
                         } catch (IOException e1) {
-                            e1.printStackTrace();
+                            JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
+                            stop();
+                            System.exit(0);
                         }
                         FirstChoice = 0;
-                        SecondChoice = 0;
                         UpdatePlayer(true);
-                        System.out.println("Ended the click");
-                        //TODO connect with server
                     }
                 }
             }
         }
     }
-    public void EnableAll(){
+    public void DEnableAll(boolean Bool){
         for(int i = 0 ; i < 4 ; ++i){
             for(int j = 0 ; j < 4 ; ++j){
                 if(btn[i][j].getBackground() == MainColor){
-                    btn[i][j].setEnabled(true);
+                    btn[i][j].setEnabled(Bool);
                 }
             }
         }
     }
 
-    public void CheckValid(){
+    public boolean CheckValidAndEndGame(){
+        boolean GameEnded = true;
         for(int i = 0 ; i < 4 ; ++i){
             for(int j = 0 ; j < 4 ; ++j){
                 if(btn[i][j].getBackground() != MainColor)continue;
@@ -165,54 +194,85 @@ public class GamePage extends JFrame{
                     btn[i][j].setBackground(NotChoice);
                     btn[i][j].setEnabled(false);
                 }
+                if(btn[i][j].getBackground() == MainColor) GameEnded = false;
             }
         }
+        return GameEnded;
     }
 
-    public void Rec(){
+    public void ReceiveSquares(){
         Thread ReciveThread;
         ReciveThread = new Thread(new Runnable() {
             @Override
             public void run() {
+                DEnableAll(false);
                 String temp = "";
                 while (true){
                     try {
                         temp = Receive.readUTF();
+                        if(temp.equals("error")){
+                            JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
+                            stop();
+                            System.exit(0);
+                        }
+                    } catch (Exception e){
+                        JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
+                        stop();
+                        System.exit(0);
+                        break;
+                    }
+                    if(temp.equals("sent"))continue;
+                    RECEIVED = Integer.parseInt(temp);
+                    try {
+                        Send.writeUTF("arrived");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    RECEIVED = Integer.parseInt(temp);
                     if(RECEIVED == -1)break;
+                    else if(RECEIVED == 17){
+                        JOptionPane.showMessageDialog(null,"the Winner is : " + Player2Name);
+                        return;
+                    }
                     int i = (RECEIVED - 1)/4;
                     int j = (RECEIVED - 1)%4;
-                    btn[i][j].setBackground(Player2Color);
-                    btn[i][j].setEnabled(false);
-                    temp = "";
+                    if(btn[i][j].getBackground() != MainColor)
+                        btn[i][j].setBackground(MainColor);
+                    else
+                        btn[i][j].setBackground(Player2Color);
                 }
                 RECEIVED = 0;
-                CheckValid();
-                //Play(true);
+                CheckValidAndEndGame();
+                DEnableAll(true);
                 UpdatePlayer(false);
             }
+
         });
         ReciveThread.setDaemon(true);
         ReciveThread.start();
     }
 
+    public synchronized void stop(){
+        try {
+            Receive.close();
+            Send.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void UpdatePlayer(boolean Player1){
-        Player.setText((Player1)?"Player 2" : "Player 1");
-        System.out.println("Updated");
+        Player.setText((Player1)?"Player 2 : " + Player2Name : "Player 1 : " + Player1Name);
     }
 
     public void SetEnable(int row, int col){
         for(int i = 0 ; i < 4 ; ++i){
             for(int j = 0 ; j < 4 ; ++j){
-                if(((i == row && j == col-1)
+                if((((i == row && j == col-1)
                         || (i == row && j == col +1)
                         || (i == row-1 && j == col)
-                        || (i == row+1 && j == col)
-                        || (i == row && j == col))
-                        && btn[i][j].getBackground() == MainColor){
+                        || (i == row+1 && j == col))
+                        && btn[i][j].getBackground() == MainColor)
+                        || (i == row && j == col)){
 
                     btn[i][j].setEnabled(true);
                 }
