@@ -41,14 +41,9 @@ public class HomePage extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 ConnectToServer(port,true);
-                //setVisible(false);
-                /*try {
-                    //Send.writeUTF("1");
-                    //Send.writeUTF(textField1.getText());
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                }*/
-                TwoSquares = new GamePage(Receive,Send, true);
+
+                TwoSquares = new GamePage(Receive,Send,textField1.getText());
+                setVisible(false);
             }
         });
         Join.addActionListener(new ActionListener() {
@@ -56,16 +51,9 @@ public class HomePage extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 ConnectToServer(port,false);
 
-               /* try {
-                    //Send.writeUTF("0");
-                    //Send.writeUTF(textField1.getText());
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                }*/
-
-                TwoSquares = new GamePage(Receive,Send,false);
-                //TwoSquares.Rec();
+                TwoSquares = new GamePage(Receive,Send,textField1.getText());
                 TwoSquares.UpdatePlayer(true);
+                setVisible(false);
             }
         });
 
@@ -105,18 +93,21 @@ public class HomePage extends JFrame {
         try
         {
 
-            socket = new Socket("localhost", port);
+            socket = new Socket("192.168.1.20", port);
 
             System.out.println("Connected");
 
             Send = new DataOutputStream(socket.getOutputStream());
             Receive = new DataInputStream(socket.getInputStream());
 
-            if(Host)
+            if(Host) {
                 Send.writeUTF("1");
-            else if(!Host)
+                Send.writeUTF(textField1.getText());
+            }
+            else if(!Host) {
                 Send.writeUTF("0");
-
+                Send.writeUTF(textField1.getText());
+            }
         }
         catch(UnknownHostException u)
         {
