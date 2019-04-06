@@ -8,12 +8,18 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 
 public class HomePage extends JFrame {
-    private JPanel Panel1;
-    private JTextField textField1;
-    private JPanel Panel2;
+    private JPanel Panel;
+    private JTextField NameField;
+    private JTextField PortField;
+    private JTextField IPField;
     private JButton Host;
     private JButton Join;
-    private JPanel Panel3;
+    private JLabel WelcomeLabel;
+    private JLabel ToLabel;
+    private JLabel SquareLabel;
+    private JLabel GameLabel;
+
+    private Font font = new Font("",Font.CENTER_BASELINE,50);
 
     private Socket socket = null;
     private DataInputStream Receive = null;
@@ -22,7 +28,7 @@ public class HomePage extends JFrame {
     GamePage TwoSquares = null;
 
 
-    public HomePage(int port) throws IOException {
+    public HomePage(int port){
 
 
         setTitle("Two Squares Game");
@@ -31,28 +37,34 @@ public class HomePage extends JFrame {
 
         setBounds(400,110,550,500);
 
-        setMinimumSize(new Dimension(550,500));
-
         Host.setEnabled(false);
         Join.setEnabled(false);
 
-        add(Panel1);
+        WelcomeLabel.setFont(font);
+        ToLabel.setFont(font);
+        SquareLabel.setFont(font);
+        GameLabel.setFont(font);
+
+        add(Panel);
         Host.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ConnectToServer(port,true);
+                boolean connect = ConnectToServer(port,true);
+                if(!connect)return;
 
-                TwoSquares = new GamePage(Receive,Send,textField1.getText());
+                LoadingScreen LS = new LoadingScreen(Receive,Send,NameField.getText());
+
                 setVisible(false);
             }
         });
         Join.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ConnectToServer(port,false);
+                boolean connect = ConnectToServer(port,false);
+                if(!connect)return;
 
-                TwoSquares = new GamePage(Receive,Send,textField1.getText());
-                TwoSquares.UpdatePlayer(true);
+                JoinPage JP = new JoinPage(Receive,Send,NameField.getText());
+
                 setVisible(false);
             }
         });
@@ -68,17 +80,17 @@ public class HomePage extends JFrame {
                 System.out.println("Closed");
             }
         });
-        textField1.addKeyListener(new KeyAdapter() {
+        NameField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
-                textField1.requestFocus(false);
+                NameField.requestFocus(false);
             }
         });
-        
-        textField1.addActionListener(new ActionListener() {
+
+        NameField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(textField1.getText().equals(null) || textField1.getText().equals("")){
+                if(NameField.getText() == null || NameField.getText().equals("")){
                     Host.setEnabled(false);
                     Join.setEnabled(false);
                     return;
@@ -89,12 +101,16 @@ public class HomePage extends JFrame {
         });
     }
 
-    public void ConnectToServer(int port,boolean Host){
+    public boolean ConnectToServer(int port,boolean Host){
         try
         {
-
-            socket = new Socket("192.168.1.20", port);
-
+            try {
+                socket = new Socket(IPField.getText(), Integer.parseInt(PortField.getText()));
+            }
+            catch (Exception E){
+                JOptionPane.showMessageDialog(null,"The Server isn't available try again later...");
+                return false;
+            }
             System.out.println("Connected");
 
             Send = new DataOutputStream(socket.getOutputStream());
@@ -102,12 +118,21 @@ public class HomePage extends JFrame {
 
             if(Host) {
                 Send.writeUTF("1");
-                Send.writeUTF(textField1.getText());
             }
             else if(!Host) {
                 Send.writeUTF("0");
-                Send.writeUTF(textField1.getText());
             }
+            int Check = checkName();
+            if(Check == 0) {
+                JOptionPane.showMessageDialog(null,"Connection error the game will close");
+                return false;
+            }
+            else if(Check == -1){
+                JOptionPane.showMessageDialog(null,"The Name Exists enter another name...");
+                return false;
+            }
+            return true;
+
         }
         catch(UnknownHostException u)
         {
@@ -116,6 +141,22 @@ public class HomePage extends JFrame {
         catch(IOException i)
         {
             System.out.println(i);
+        }
+        return true;
+    }
+
+    public int checkName(){
+        String ReceiveMessage = null;
+        try {
+            Send.writeUTF(NameField.getText());
+            ReceiveMessage = Receive.readUTF();
+        } catch (IOException e) {
+            return 0;
+        }
+        if(ReceiveMessage.equals("1"))
+            return 1;
+        else {
+            return -1;
         }
     }
 
