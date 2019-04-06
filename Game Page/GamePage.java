@@ -28,6 +28,7 @@ public class GamePage extends JFrame{
     private JButton button16;
     private JPanel Panel;
     private JLabel Player;
+    private JLabel NameLabel;
 
     private Color MainColor = Color.white;
     private Color NotChoice = Color.pink;
@@ -53,6 +54,8 @@ public class GamePage extends JFrame{
         Player2Name = Player2;
 
         AddButtons();
+
+        NameLabel.setText("Your Name : " + Player1);
 
         for(int i = 0 ; i < 4; ++i) {
             for(int j = 0 ; j < 4 ; ++j) {
