@@ -46,10 +46,11 @@ public class GamePage extends JFrame{
 
     public static JButton[][] btn = null;
 
-    public GamePage(DataInputStream R ,DataOutputStream S,String Player1){
+    public GamePage(DataInputStream R , DataOutputStream S, String Player1,String Player2){
         Receive = R;
         Send = S;
         Player1Name = Player1;
+        Player2Name = Player2;
 
         AddButtons();
 
@@ -63,17 +64,11 @@ public class GamePage extends JFrame{
             }
         }
 
-        Panel.setBackground(Color.BLACK);
         setBounds(350,110,500,500);
         setResizable(false);
 
         add(Panel);
 
-        try {
-            Player2Name = Receive.readUTF();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         Player.setText("Player 1 : " + Player1Name);
         setVisible(true);
 
@@ -110,9 +105,7 @@ public class GamePage extends JFrame{
                             JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
                             stop();
                             System.exit(0);
-                            break;
                         }
-
                     }
                     catch (IOException l){
                         JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
@@ -135,15 +128,18 @@ public class GamePage extends JFrame{
                         btn[i][j].setBackground(Player1Color);
                         DisableButton(FirstChoice);
                         DisableButton(SecondChoice);
-                        DEnableAll(true);
+
                         if(CheckValidAndEndGame()){
                             try {
                                 Send.writeUTF("17");
                             } catch (IOException e1) {
-                                e1.printStackTrace();
+                                JOptionPane.showMessageDialog(null,"Connection error the game will close ^_^");
+                                stop();
+                                System.exit(0);
                             }
                             JOptionPane.showMessageDialog(null,"The Winner is : " + Player1Name);
-                            return;
+                            stop();
+                            System.exit(0);
                         }
                         try {
                             Send.writeUTF("-1");
@@ -230,8 +226,9 @@ public class GamePage extends JFrame{
                     }
                     if(RECEIVED == -1)break;
                     else if(RECEIVED == 17){
+                        CheckValidAndEndGame();
                         JOptionPane.showMessageDialog(null,"the Winner is : " + Player2Name);
-                        return;
+                        System.exit(0);
                     }
                     int i = (RECEIVED - 1)/4;
                     int j = (RECEIVED - 1)%4;
